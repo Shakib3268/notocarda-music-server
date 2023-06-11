@@ -28,8 +28,17 @@ async function run() {
     const usersCollection = client.db("notoDb").collection("users");
 
     // user api related
+    app.get('/users',async (req,res) =>{
+        const result = await usersCollection.find().toArray()
+        res.send(result)
+    })
     app.post('/users',async (req,res) =>{
         const user = req.body;
+        const query = {email:user.email}
+        const exiting = await usersCollection.findOne(query)
+        if(exiting){
+            return res.send({message: 'user already exist'})
+        }
         const result = await usersCollection.insertOne(user)
         res.send(result)
     })
