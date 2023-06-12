@@ -1,9 +1,9 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
+const jwt = require('jsonwebtoken')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
-const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 5000;
 // middleware
 app.use(cors());
@@ -18,7 +18,7 @@ const verifyJWT = (req,res,next) => {
   // bearer token
   const token = authorization.split(' ')[1];
 
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+  jwt.verify(token,process.env.ACCES_TOKEN, (err, decoded) => {
     if (err) {
       return res.status(401).send({ error: true, message: 'unauthorized access' })
     }
@@ -47,18 +47,43 @@ async function run() {
 
     const usersCollection = client.db("notoDb").collection("users");
 
-
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email }
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== 'admin') {
+        return res.status(403).send({ error: true, message: 'forbidden message' });
+      }
+      next();
+    }
+    const verifyInstructor = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email }
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== 'instructor') {
+        return res.status(403).send({ error: true, message: 'forbidden message' });
+      }
+      next();
+    }
     app.post('/jwt', (req,res) =>{
       const user = req.body;
       const token = jwt.sign(user,process.env.ACCES_TOKEN, { expiresIn: '1h' })
-      res.send(token)
+      res.send({ token })
     })
 
     // user api related
-    app.get('/users',async (req,res) =>{
+    app.get('/users',verifyJWT,verifyAdmin,async (req,res) =>{
         const result = await usersCollection.find().toArray()
         res.send(result)
     })
+    app.get('/users',verifyJWT,verifyInstructor,async (req,res) =>{
+      const result = await usersCollection.find().toArray()
+      res.send(result)
+  })
+  //   app.get('/users',async (req,res) =>{
+  //     const result = await usersCollection.find().toArray()
+  //     res.send(result)
+  // })
     app.post('/users',async (req,res) =>{
         const user = req.body;
         const query = {email:user.email}
@@ -103,7 +128,7 @@ async function run() {
 
       const query = { email: email }
       const user = await usersCollection.findOne(query);
-      const result = { admin: user?.role === 'instructor' }
+      const result = { instructor: user?.role === 'instructor' }
       res.send(result);
     })
     app.patch('/users/instructor/:id',async (req,res) =>{
