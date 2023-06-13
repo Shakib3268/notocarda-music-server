@@ -47,6 +47,108 @@ async function run() {
 
     const usersCollection = client.db("notoDb").collection("users");
     const allClassCollection = client.db("notoDb").collection('allclass');
+    const selectClassCollection = client.db("notoDb").collection('selectclass');
+
+     // student selected class this api provide this email add data
+     app.get('/selectclass', verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      if (!email) {
+        res.send([]);
+      }
+      const decodedEmail = req.decoded.email;
+      if (email !== decodedEmail) {
+        return res.status(403).send({ error: true, message: 'forbidden access' })
+      }
+      const query = { email: email };
+      const result = await selectClassCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // student selected classes this api post  data
+    app.post('/selectclass', async (req, res) => {
+      const selectclass = req.body;
+      const result = await selectClassCollection.insertOne(selectclass);
+      res.send(result);
+    })
+
+    // student selected classes delet api 
+    app.delete('/selectclass/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await selectClassCollection.deleteOne(query);
+      res.send(result);
+    })
+
+     //server get the call insturctor email base data provide to user enroll classes
+     app.get("/enroledclases/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const enrolclass = await paymentCollection.find({ instructoremail: req.params.email, }).toArray();
+      res.send(enrolclass);
+    });
+    //server get the call user email base data provide to user enroll classes
+    app.get("/enrolestudent/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const enrolclass = await paymentCollection.find({ email: req.params.email, }).toArray();
+      res.send(enrolclass);
+    });
+
+    app.get('/instructors', async (req, res) => {
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    })
+
+    // instructor fetch thi api and update class
+    app.put("/allclass/:id", async (req, res) => {
+      const id = req.params.id;
+      const body = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          classname: body.classname,
+          image: body.image,
+          seats: body.seats,
+          price: body.price,
+        },
+      };
+      const result = await allClassCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    //all data this api provide to sorting popular classes
+    app.get('/popularclasses', async (req, res) => {
+      const popularclass = await allClassCollection.find().sort({ enroll: -1 }).limit(6).toArray();
+      res.send(popularclass);
+    })
+
+    app.put("/allclass/:id", async (req, res) => {
+      const id = req.params.id;
+      const body = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          classname: body.classname,
+          image: body.image,
+          seats: body.seats,
+          price: body.price,
+        },
+      };
+      const result = await allClassCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    app.get('/singleclass/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = ({ _id: new ObjectId(id) })
+      const result = await allClassCollection.findOne(query);
+      res.send(result);
+    })
+
+    app.get("/myclass/:email", async (req, res) => {
+      const email = req.params.email;
+      console.log(email);
+      const myclass = await allClassCollection.find({ instructoremail: req.params.email, }).toArray();
+      res.send(myclass);
+    });
 
     app.delete('/allclass/:id',async (req,res) =>{
       const id = req.params.id 
