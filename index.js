@@ -4,6 +4,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
+const stripe = require('stripe')(process.env.Payment_Secret_Key)
 const port = process.env.PORT || 5000;
 // middleware
 app.use(cors());
@@ -50,6 +51,22 @@ async function run() {
     const selectClassCollection = client.db("notoDb").collection('selectclass');
     const paymentCollection = client.db("notoDb").collection("payments");
 
+     //Create payment intent
+     app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      console.log(amount);
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+
+    })
+
     // alll payment classe api
     app.get('/allpayments', async (req, res) => {
       const result = await paymentCollection.find().toArray();
@@ -85,7 +102,7 @@ async function run() {
           enroll: enrool,
         },
       };
-      const result = await allclassCollection.updateOne(filter, updateDoc);
+      const result = await allClassCollection.updateOne(filter, updateDoc);
       console.log(insertResult);
       console.log(deleteResult);
       console.log(result);
