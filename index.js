@@ -48,6 +48,57 @@ async function run() {
     const usersCollection = client.db("notoDb").collection("users");
     const allClassCollection = client.db("notoDb").collection('allclass');
     const selectClassCollection = client.db("notoDb").collection('selectclass');
+    const paymentCollection = client.db("notoDb").collection("payments");
+
+    // alll payment classe api
+    app.get('/allpayments', async (req, res) => {
+      const result = await paymentCollection.find().toArray();
+      res.send(result);
+    })
+
+    //server get the call insturctor email base data provide to user enroll classes
+    app.get("/enroledclases/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const enrolclass = await paymentCollection.find({ instructoremail: req.params.email, }).toArray();
+      res.send(enrolclass);
+    });
+    //server get the call user email base data provide to user enroll classes
+    app.get("/enrolestudent/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const enrolclass = await paymentCollection.find({ email: req.params.email, }).toArray();
+      res.send(enrolclass);
+    });
+    // payment api and delete select class and fainaly update seates dclass
+    app.post('/payments', verifyJWT, async (req, res) => {
+      const payment = req.body;
+      const id = payment.payid;
+      const classid = payment.classid;
+      const seats = payment.seats - 1;
+      const enrool = payment.enroll + 1;
+      const insertResult = await paymentCollection.insertOne(payment);
+      const query = { _id: new ObjectId(id) }
+      const deleteResult = await selectClassCollection.deleteOne(query);
+      const filter = { _id: new ObjectId(classid) }
+      const updateDoc = {
+        $set: {
+          seats: seats,
+          enroll: enrool,
+        },
+      };
+      const result = await allclassCollection.updateOne(filter, updateDoc);
+      console.log(insertResult);
+      console.log(deleteResult);
+      console.log(result);
+      res.send({ insertResult, deleteResult, result });
+    });
+
+    // singleid base data delet men api
+    app.delete('/paymentdelet/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await paymentCollection.deleteOne(query);
+      res.send(result);
+    })
 
      // student selected class this api provide this email add data
      app.get('/selectclass', verifyJWT, async (req, res) => {
