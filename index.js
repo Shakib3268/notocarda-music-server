@@ -46,6 +46,37 @@ async function run() {
     await client.connect();
 
     const usersCollection = client.db("notoDb").collection("users");
+    const allClassCollection = client.db("notoDb").collection('allclass');
+
+    app.delete('/allclass/:id',async (req,res) =>{
+      const id = req.params.id 
+      const query = {_id : new ObjectId(id)}
+      const result = await allClassCollection.deleteOne(query)
+      res.send(result)
+    })
+
+    app.patch('/allclass/aproved/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          status: 'aproved'
+        },
+      };
+      const result = await allClassCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    app.get('/allclasses', async (req, res) => {
+      const result = await allClassCollection.find().toArray();
+      res.send(result);
+    })
+
+    app.post('/allclass', async (req, res) => {
+      const allclass = req.body;
+      const result = await allClassCollection.insertOne(allclass);
+      res.send(result);
+    })
 
     const verifyAdmin = async (req, res, next) => {
       const email = req.decoded.email;
@@ -80,10 +111,6 @@ async function run() {
       const result = await usersCollection.find().toArray()
       res.send(result)
   })
-  //   app.get('/users',async (req,res) =>{
-  //     const result = await usersCollection.find().toArray()
-  //     res.send(result)
-  // })
     app.post('/users',async (req,res) =>{
         const user = req.body;
         const query = {email:user.email}
