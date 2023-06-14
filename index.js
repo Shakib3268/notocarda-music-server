@@ -52,7 +52,7 @@ async function run() {
     const paymentCollection = client.db("notoDb").collection("payments");
 
      //Create payment intent
-     app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+     app.post('/create-payment-intent', async (req,res) => {
       const { price } = req.body;
       const amount = parseInt(price * 100);
       console.log(amount);
