@@ -44,7 +44,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     const usersCollection = client.db("notoDb").collection("users");
     const allClassCollection = client.db("notoDb").collection('allclass');
@@ -277,10 +277,7 @@ async function run() {
         const result = await usersCollection.find().toArray()
         res.send(result)
     })
-    app.get('/users',verifyJWT,verifyInstructor,async (req,res) =>{
-      const result = await usersCollection.find().toArray()
-      res.send(result)
-  })
+    
     app.post('/users',async (req,res) =>{
         const user = req.body;
         const query = {email:user.email}
@@ -291,6 +288,17 @@ async function run() {
         const result = await usersCollection.insertOne(user)
         res.send(result)
     })
+
+    app.get("/user/student/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      if (email !== req.decoded.email) {
+          return res.send({ student: false })
+      }
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      const result = { student: user?.role === "Student" }
+      res.send(result);
+  })
 
     app.get('/users/admin/:email', verifyJWT, async (req, res) => {
       const email = req.params.email;
